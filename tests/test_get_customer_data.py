@@ -1,5 +1,5 @@
-import pytest
 from db_steps import db_steps
+
 
 def test_get_customer_data(db_client, get_existing_customer_from_db):
     id = get_existing_customer_from_db[0]
