@@ -10,7 +10,6 @@ class MariaDbClient:
             user=user,
             db=db,
             password=password
-            # charset="utf8mb4",
         )
 
     def execute(self, sql_request: str):
