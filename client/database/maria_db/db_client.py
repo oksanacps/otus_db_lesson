@@ -1,5 +1,6 @@
 import pymysql
 import logging
+import pymysql.cursors
 
 
 class MariaDbClient:
@@ -12,22 +13,23 @@ class MariaDbClient:
             password=password
         )
 
-    def execute(self, sql_request: str):
+    def execute(self, sql_request: str, params: tuple = None):
         try:
-            with self.connection.cursor() as cursor:    # Нужно ли закрывать курсор (в данном случае закроектся через конт.менеджер, или в тестах это избыточно?)
-                cursor.execute(sql_request)
+            with self.connection.cursor(pymysql.cursors.DictCursor) as cursor: 
+                cursor.execute(sql_request, params)
                 self.connection.commit()
                 raw_data = cursor.fetchall()
                 logging.info(f"--------------------------------")
                 logging.info(self.connection.get_host_info())
             logging.info(f"Executed SQL request: {sql_request}")
+            logging.info(f"Parameters: {params}")
             logging.info(f"Raw data: {raw_data}")
             logging.info(f"--------------------------------")
-            return raw_data 
+            return raw_data
         except Exception as e:
             logging.error(f"Error executing SQL request: {e}")
             self.connection.rollback()
-            raise e
+            raise AssertionError(f"Ошибка выполнения SQL запроса: {e}")
 
     def close(self):
         logging.info("Closing DB connection...")

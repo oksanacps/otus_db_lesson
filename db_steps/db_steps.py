@@ -7,7 +7,24 @@ def create_customer(db_client: MariaDbClient, customer_data: dict):
     Возвращает id созданного клиента.
     """
 
-    sql_request = f"""
+    params = (
+        '123',  # customer_group_id
+        customer_data.get("firstname"),
+        customer_data.get("lastname"),
+        customer_data.get("email"),
+        customer_data.get("telephone"),
+        customer_data.get("password"),
+        '0',    # language_id
+        '0',    # custom_field
+        '192.168.0.1',  # ip
+        '0',    # status
+        '0',    # safe
+        'asd',  # token
+        'asd',  # code
+        customer_data.get("date_added")
+    )
+
+    sql_request = """
         INSERT INTO oc_customer
             (customer_group_id, 
             firstname, lastname, 
@@ -22,26 +39,18 @@ def create_customer(db_client: MariaDbClient, customer_data: dict):
             token, 
             code, 
             date_added)
-        VALUES ('123',
-                '{customer_data.get("firstname")}',
-                '{customer_data.get("lastname")}',
-                '{customer_data.get("email")}',
-                '{customer_data.get("telephone")}',
-                '{customer_data.get("password")}',
-                '0',
-                '0',
-                '192.168.0.1',
-                '0',
-                '0',
-                'asd',
-                'asd',
-                '{customer_data.get("date_added")}');
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);
     """
-    db_client.execute(sql_request)
-    sql_select = "SELECT LAST_INSERT_ID();"
-    result = db_client.execute(sql_select)
-    return result[0][0]
 
+    try:
+        db_client.execute(sql_request, params)
+        sql_select = "SELECT LAST_INSERT_ID();"
+        result = db_client.execute(sql_select)
+        return list(result[0].values())[0]
+
+    except Exception as e:
+        raise AssertionError(f"Ошибка создания клиента")
+    
 
 def get_customer_data_by_id(db_client: MariaDbClient, id: int):
     """
@@ -49,17 +58,27 @@ def get_customer_data_by_id(db_client: MariaDbClient, id: int):
     Возвращает данные.
     """
 
-    sql_request = f"""
+    params = (
+        id
+    )
+
+    sql_request = """
     SELECT *
     FROM oc_customer
-    WHERE customer_id = {id}
+    WHERE customer_id = %s;
     """
 
-    customer_data = db_client.execute(sql_request)
+    try:
+        customer_data = db_client.execute(sql_request, params)
+        if customer_data:
+            return customer_data[0]
+        else:
+            return None
 
-    return customer_data
+    except Exception as e:
+        raise AssertionError(f"Ошибка получения клиента {id}: {e}")
 
-
+    
 def get_customers(db_client: MariaDbClient):
     """
     Запрашивает все данные из таблицы oc_customer.
@@ -68,33 +87,44 @@ def get_customers(db_client: MariaDbClient):
 
     sql_request = """
     SELECT *
-    FROM oc_customer
+    FROM oc_customer;
     """
 
-    customers_data = db_client.execute(sql_request)
+    try:
+        customers_data = db_client.execute(sql_request)
+        return customers_data
 
-    return customers_data
+    except Exception as e:
+        raise AssertionError(f"Ошибка получения информации в таблице oc_customer")
 
 
 def update_customer_data(db_client: MariaDbClient, customer_data: dict, id: int):
     """
     Обновляет данные по клиенту.
     """
+    params = (
+        customer_data.get("firstname"),
+        customer_data.get("lastname"),
+        customer_data.get("email"),
+        customer_data.get("telephone"),
+        id
+    )
+
+    sql_request = """
+            UPDATE oc_customer 
+            SET firstname = %s,
+                lastname = %s,
+                email = %s,
+                telephone = %s
+            WHERE customer_id = %s;
+        """
 
     try:
-        sql_request = f"""
-            UPDATE oc_customer 
-            SET firstname = '{customer_data.get("firstname")}',
-                lastname = '{customer_data.get("lastname")}',
-                email ='{customer_data.get("email")}',
-                telephone ='{customer_data.get("telephone")}'
-            WHERE customer_id = {id};
-        """
-        db_client.execute(sql_request)
-
+        db_client.execute(sql_request, params)
+        return True
 
     except Exception as e:
-        raise e(f"Ошибка обновления клиента {id}: {e}")
+        raise AssertionError(f"Ошибка обновления клиента {id}: {e}")
 
 
 def delete_customer(db_client: MariaDbClient, id: int):
@@ -102,17 +132,19 @@ def delete_customer(db_client: MariaDbClient, id: int):
     Удаляет пользователя по ID.
     Возвращает True (БД кол-во затронутых строк не возвращает)
     """
+    params = (
+        id
+    )
 
-    try:
-        sql_request = f"""
+    sql_request = """
         DELETE 
         FROM oc_customer 
-        WHERE customer_id = {id}
+        WHERE customer_id = %s;
         """
-        db_client.execute(sql_request)
-
+    
+    try:
+        db_client.execute(sql_request, params)
         return True
 
-
     except Exception as e:
-        raise e(f"Ошибка удаления клиента {id}: {e}")
+        raise ArithmeticError(f"Ошибка удаления клиента {id}: {e}")

@@ -1,3 +1,5 @@
+from datetime import datetime
+from faker import Faker
 import random
 import pytest
 import logging
@@ -35,14 +37,10 @@ def db_client(request):
 
 
 @pytest.fixture()
-def get_existing_customer_from_db(db_client):
-    customers_data = db_steps.get_customers(db_client)
-    try:
-        customer_data = customers_data[0]
-        return customer_data
+def create_customer(db_client, generate_customer_data):
+    id = db_steps.create_customer(db_client, generate_customer_data)
 
-    except IndexError as e:
-        raise e("Ошибка получения клиента. Таблица oc_customer пустая")
+    return id
 
 
 @pytest.fixture()
@@ -54,3 +52,46 @@ def generate_not_existing_customer_id(db_client):
         if random_id not in customers_data:
             return random_id
         count -= 1
+
+
+@pytest.fixture()
+def cleanup_user(request, db_client):
+    """
+    Фикстура для удаления пользователей после теста.
+    """
+    users_to_cleanup = []
+    def cleanup_users():
+        for id in users_to_cleanup:
+            db_steps.delete_customer(db_client, id)
+    request.addfinalizer(cleanup_users)
+    
+    def add_user_for_cleanup(id):
+        users_to_cleanup.append(id)
+
+    return add_user_for_cleanup
+
+
+@pytest.fixture()
+def generate_customer_data():
+    """
+    Фикстура для генерации случайных данных клиента с помощью Faker.
+    Возвращает словарь с данными клиента.
+    """
+    fake = Faker()
+
+    firstname = fake.first_name()
+    lastname = fake.last_name()
+    email = fake.email()
+    telephone = fake.phone_number()
+    password = fake.password()
+    date_added = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    customer_data = {
+        "firstname": firstname,
+        "lastname": lastname,
+        "email": email,
+        "telephone": telephone,
+        "password": password,
+        "date_added": date_added
+    }
+    return customer_data

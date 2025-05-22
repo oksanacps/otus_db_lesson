@@ -2,32 +2,18 @@ from db_steps import db_steps
 from datetime import datetime
 
 
-def test_update_existing_customer(db_client, get_existing_customer_from_db):
-    customer_data = {
-        "firstname": "TestUpdated",
-        "lastname": "TestUpdated",
-        "email": "TestUpdated1@test.ru",
-        "telephone": "+73456677888",
-    }
-
-    id = get_existing_customer_from_db[0]
-    db_steps.update_customer_data(db_client, customer_data, id)
-    customer_data = db_steps.get_customer_data_by_id(db_client, id)[0]
-    assert customer_data[4] == "TestUpdated"
-    assert customer_data[5] == "TestUpdated"
-    assert customer_data[6] == "TestUpdated1@test.ru"
-    assert customer_data[7] == "+73456677888"
-
-
-def test_update_not_existing_customer(db_client, generate_not_existing_customer_id):
-    customer_data = {
-        "firstname": "TestUpdatedNotExist",
-        "lastname": "TestUpdatedNotExist",
-        "email": "TestUpdatedNotExist@test.ru",
-        "telephone": "+76544325522",
-    }
-
-    id = generate_not_existing_customer_id
-    db_steps.update_customer_data(db_client, customer_data, id)
+def test_update_existing_customer(db_client, create_customer, generate_customer_data, cleanup_user):
+    id = create_customer
+    db_steps.update_customer_data(db_client, generate_customer_data, id)
     customer_data = db_steps.get_customer_data_by_id(db_client, id)
-    assert len(customer_data) == 0
+    assert customer_data["firstname"] == generate_customer_data["firstname"]
+    assert customer_data["lastname"] == generate_customer_data["lastname"]
+    assert customer_data["email"] == generate_customer_data["email"] 
+    assert customer_data["telephone"] == generate_customer_data["telephone"]
+    cleanup_user(id)
+
+def test_update_not_existing_customer(db_client, generate_not_existing_customer_id, generate_customer_data, cleanup_user):
+    id = generate_not_existing_customer_id
+    assert db_steps.update_customer_data(db_client, generate_customer_data, id)
+    assert db_steps.get_customer_data_by_id(db_client, id) is None
+    cleanup_user(id)
